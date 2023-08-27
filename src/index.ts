@@ -4,11 +4,11 @@ import bodyParser from 'body-parser';
 import Robokassa from './robokassa';
 import { PaymentRequest } from './interfaces';
 
-
 const transactionMgr = new Robokassa({
     login: process.env.ROBOKASSA_LOGIN,
     password1: process.env.ROBOKASSA_PASSWORD1,
     password2: process.env.ROBOKASSA_PASSWORD2,
+    debug: true
 });
 
 const app = express();
@@ -21,11 +21,11 @@ app.post('/getlink', (req: Request, res: Response) => {
         console.log(req.body);
         return res.sendStatus(400).send('Invalid request: missing body fields');
     }
-    const { id, summ, description } = req.body;
-    if (!id || !summ || !description) {
+    const { invId, summ, description } = req.body;
+    if (invId === undefined || !summ || !description) {
         return res.status(400).send('Invalid request: missing required fields');
     }
-    const link = transactionMgr.merchantUrl({ id, summ, description });
+    const link = transactionMgr.merchantUrl({ invId, summ, description });
     res.send({ paymentLink: link });
 });
 
@@ -44,9 +44,11 @@ app.post('/payment/result', (req: Request, res: Response) => {
     if (transactionMgr.checkPayment(paymentRequest)) {
         // todo реализовать хранение записи об успешном платеже
         console.log("Ура!");
+        res.send(`OK{invId}`);
     } else {
         // todo реализовать хранение записи об неудачном платеже
         console.log("Не ура!");
+        res.status(500).send(`ERROR – {invId}`);
     }
     console.log('link ===>', req.url);
     console.log('body ===>', req.body);

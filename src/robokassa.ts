@@ -10,6 +10,7 @@ export default class Robokassa {
     private hashType: string;
     private url: string;
     private paramPrefix: string;
+    private debug: boolean;
 
     constructor(opts: {
         login: string | undefined;
@@ -18,6 +19,7 @@ export default class Robokassa {
         hash?: string;
         url?: string;
         paramPrefix?: string;
+        debug?: boolean;
     }) {
         if (opts.login === undefined)
             throw new ErrInvalidParam('Отсутствует обязательный параметр login');
@@ -32,6 +34,7 @@ export default class Robokassa {
         this.hashType = opts.hash || 'md5';
         this.url = opts.url || 'https://auth.robokassa.ru/Merchant/Index.aspx';
         this.paramPrefix = opts.paramPrefix || '_';
+        this.debug = opts.debug || false;
     }
 
     /**
@@ -47,20 +50,22 @@ export default class Robokassa {
      * @throws ErrMissingParam - Если не указан обязательный параметр.
      */
     public merchantUrl(order: {
-        id: number;
+        invId: number;
         description: string;
         summ: number;
         currency?: string;
         lang?: string;
     }): string {
         const userParams = this.extractUserParams(order, this.paramPrefix);
-        const cryptoOptions = [this.login, order.summ, order.id];
+        const cryptoOptions = [this.login, order.summ, order.invId];
 
         const query: Record<string, any> = {
-            MrchLogin: this.login,
+            // MrchLogin: this.login,
+            MerchantLogin: this.login,
             OutSum: order.summ,
-            InvId: order.id,
-            Desc: order.description
+            InvId: order.invId,
+            Desc: order.description,
+            ...(this.debug ? { IsTest: 1 } : {})
         };
 
         if (order.currency) {
@@ -82,10 +87,8 @@ export default class Robokassa {
                 query[`shp${key}`] = val;
             }
         }
-
-
-        query.SignatureValue = this.hash(cryptoOptions.join(':'), this.hashType);
-
+        const signatureString = cryptoOptions.join(':');
+        query.SignatureValue = this.hash(signatureString);
         return `${this.url}?${this.generateQueryString(query)}`;
     }
 
@@ -120,7 +123,7 @@ export default class Robokassa {
             }
         }
 
-        const crc = this.hash(crcOpts.join(':'), this.hashType);
+        const crc = this.hash(crcOpts.join(':'));
         return crc === req.SignatureValue.toLowerCase();
     }
 
@@ -157,6 +160,8 @@ export default class Robokassa {
             queryString.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
         }
 
+        queryString.push('Encoding=utf-8');
+
         return queryString.join('&');
     }
 
@@ -168,8 +173,8 @@ export default class Robokassa {
      * @param type - Тип алгоритма хеширования.
      * @returns Хэш-строка.
      */
-    private hash(data: string, type: string): string {
-        return crypto.createHash(type || 'sha1')
+    private hash(data: string): string {
+        return crypto.createHash(this.hashType)
             .update(data)
             .digest('hex');
     }
