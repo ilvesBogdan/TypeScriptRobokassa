@@ -107,6 +107,7 @@ artifacts/
 *.vspscc
 *.vssscc
 .builds
+*.http
 *.pidb
 *.svclog
 *.scc

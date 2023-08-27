@@ -47,14 +47,12 @@ export default class Robokassa {
      * @throws ErrMissingParam - Если не указан обязательный параметр.
      */
     public merchantUrl(order: {
-        id?: number;
+        id: number;
         description: string;
         summ: number;
         currency?: string;
         lang?: string;
     }): string {
-        order.id = order.id || 0;
-
         const userParams = this.extractUserParams(order, this.paramPrefix);
         const cryptoOptions = [this.login, order.summ, order.id];
 
