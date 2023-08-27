@@ -51,20 +51,20 @@ export default class Robokassa {
      */
     public merchantUrl(order: {
         invId: number;
-        description: string;
         summ: number;
+        description?: string;
         currency?: string;
         lang?: string;
     }): string {
+        if (order.summ < 1)
+            throw new ErrInvalidParam('Недопустимая сумма заказа');
         const userParams = this.extractUserParams(order, this.paramPrefix);
         const cryptoOptions = [this.login, order.summ, order.invId];
-
         const query: Record<string, any> = {
-            // MrchLogin: this.login,
             MerchantLogin: this.login,
             OutSum: order.summ,
             InvId: order.invId,
-            Desc: order.description,
+            ...(order.description ? {Desc: order.description} : {}),
             ...(this.debug ? { IsTest: 1 } : {})
         };
 
