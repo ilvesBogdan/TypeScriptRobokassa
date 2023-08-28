@@ -9,8 +9,9 @@ Type Script Robokassa - это микросервис на TypeScript для р�
 ## Установка и запуск
 
 1. Клонирование репозитория
-2. Создайте docker образ `docker build -t robokassa .`
-3. Примените конфигурацию из файла `nginx.conf`
+2. Создайте docker образ `docker build --build-arg Login="Your login" Pass1="Your pass1" Pass2="Your pass2" -t robokassa .`
+3. Запустите контейнер `docker run -d -p 9777:9777 robokassa`
+4. Прокинте запрос "Result" post метод от Робокассы на http://localhost:9777/payment/result
 
 ## Как использовать
 
