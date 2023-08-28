@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 
 import { ErrMissingParam, ErrInvalidParam } from './errors';
-import { PaymentRequest } from './interfaces';
+import { PaymentRequest } from './robokassa.struct';
 
 export default class Robokassa {
     private login: string;
@@ -64,7 +64,7 @@ export default class Robokassa {
             MerchantLogin: this.login,
             OutSum: order.summ,
             InvId: order.invId,
-            ...(order.description ? {Desc: order.description} : {}),
+            ...(order.description ? { Desc: order.description } : {}),
             ...(this.debug ? { IsTest: 1 } : {})
         };
 
@@ -105,14 +105,9 @@ export default class Robokassa {
 
         for (let i = 0; i < keys.length; i++) {
             const key = keys[i];
-
-            if (key.substring(0, 3) === 'shp') {
-                const val = req[key];
-                userParams.push(`${key}=${val}`);
-
-                delete req[key];
-                req[key.substring(3)] = val;
-            }
+            const val = req[key];
+            userParams.push(`${key}=${val}`);
+            delete req[key];
         }
 
         const crcOpts = [req.OutSum, req.InvId, userFirstPass ? this.pass1 : this.pass2];

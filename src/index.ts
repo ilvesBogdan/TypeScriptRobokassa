@@ -1,8 +1,9 @@
 import express, { Request, Response } from 'express';
 import bodyParser from 'body-parser';
+import Datastore, { Payment } from 'nedb';
 
 import Robokassa from './robokassa';
-import { PaymentRequest } from './interfaces';
+import { PaymentRequest } from './robokassa.struct';
 
 const transactionMgr = new Robokassa({
     login: process.env.ROBOKASSA_LOGIN,
@@ -12,6 +13,7 @@ const transactionMgr = new Robokassa({
 });
 
 const app = express();
+const db = new Datastore({ filename: 'data.db', autoload: true });
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -26,8 +28,16 @@ app.post('/getlink', (req: Request, res: Response) => {
         return res.status(400).send('Invalid request: missing required fields');
     }
     const link = transactionMgr.merchantUrl({ invId, summ, description });
-    res.send({ paymentLink: link });
+    const payment: Payment = { _id: invId, count: summ, status: undefined, created: new Date() };
     console.log(`Запрос на получение ссылки на оплату на сумму ${summ}, для заказа ${invId}`);
+    db.insert(payment, (err, _) => {
+        if (err) {
+            console.log('Ошибка при записи в базу данных');
+            res.status(500).send({ error: `Error "${err}"` });
+            return;
+        }
+        res.send({ paymentLink: link });
+    });
 });
 
 app.post('/checkpayment', (req: Request, res: Response) => {
@@ -36,8 +46,16 @@ app.post('/checkpayment', (req: Request, res: Response) => {
     if (!id) {
         return res.status(400).send('Invalid request: missing required fields');
     }
-    res.send({ "reply": id });
-    console.log(`Запрос на получение информации о платеже, для заказа ${id}`);
+    db.find({ _id: id }, (err, docs) => {
+        if (err) {
+            console.log(`Ошибка получения значение из db по id ${id}`);
+            res.status(500).send({ error: `Error "${err}"` });
+            return;
+        }
+        console.log(`Запрос на получение информации о платеже, для заказа ${id}`);
+        const paymentStatus = docs[0].status;
+        res.send({ "status": paymentStatus });
+    })
 })
 
 app.post('/payment/result', (req: Request, res: Response) => {
@@ -46,6 +64,7 @@ app.post('/payment/result', (req: Request, res: Response) => {
         console.log('Был получен пустой запрос от робокассы');
         return;
     }
+    console.log(req.body);
     const paymentRequest: PaymentRequest = req.body as PaymentRequest;
     if (paymentRequest.InvId === undefined || paymentRequest.OutSum === undefined) {
         res.sendStatus(400).send('Invalid request: missing required fields');
@@ -57,10 +76,17 @@ app.post('/payment/result', (req: Request, res: Response) => {
         console.log('Платеж не прошел проверку контрольной суммы');
         return;
     }
-    res.send(`OK${paymentRequest.InvId}`);
-    // todo реализация записи в базу данных
-    console.log('Платеж прошел проверку контрольной суммы, для заказа',
-        `${paymentRequest.InvId} на сумму ${paymentRequest.OutSum}`);
+    const updateStatus = { status: true }
+    db.update({ _id: paymentRequest.InvId }, { $set: updateStatus }, {}, (err, _) => {
+        if (err) {
+            console.log('Ошибка при обновлении статуса платежа');
+            res.status(500).send('Write error');
+            return;
+        }
+        res.send(`OK${paymentRequest.InvId}`);
+        console.log('Платеж прошел проверку контрольной суммы, для заказа',
+            `${paymentRequest.InvId} на сумму ${paymentRequest.OutSum}`);
+    })
 });
 
 app.listen(9777, () => {
