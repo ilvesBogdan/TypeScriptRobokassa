@@ -1,0 +1,45 @@
+### Получить ссылку
+
+POST http://localhost:9777/getlink HTTP/1.1
+content-type: application/json
+
+{
+    "invId": 1693204429,
+    "summ": 1,
+    "description": "Тестовый платеж"
+}
+
+### Получить результат
+
+POST http://localhost:9777/checkpayment HTTP/1.1
+content-type: application/json
+
+{
+    "invId": 1693204429
+}
+
+### Подтвердить удачный плтеж
+
+POST http://localhost:9777/payment/result HTTP/1.1
+content-type: application/json
+
+{
+    "IsTest": 1,
+    "Culture": "ru",
+    "OutSum": 5,
+    "SignatureValue": "8dac39f759e4522539b436e84d9b6a9a",
+    "InvId": 1693204429
+}
+
+### Подтвердить ошибку платежа
+
+POST http://localhost:9777/payment/result HTTP/1.1
+content-type: application/json
+
+{
+    "IsTest": 1,
+    "Culture": "ru",
+    "OutSum": 5,
+    "SignatureValue": "8dac539b436e84d9b6a9a",
+    "InvId": 1693204429
+}
