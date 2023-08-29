@@ -1,8 +1,8 @@
 declare module 'nedb' {
     interface Payment {
-        _id: number;
+        id: number
         count: number;
-        status: boolean | undefined;
+        status: number;
         created: Date;
     }
 

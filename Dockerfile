@@ -6,14 +6,13 @@ RUN yarn add typescript
 COPY . .
 RUN yarn build
 
-# Аргументы пользовательского ввода
-ARG Login
-ARG Pass1
-ARG Pass2
-# Указываем переменные окружения
-ENV ROBOKASSA_LOGIN=$Login
-ENV ROBOKASSA_PASSWORD1=$Pass1
-ENV ROBOKASSA_PASSWORD2=$Pass2
+# установите переменные окружения
+ENV ROBOKASSA_LOGIN=
+ENV ROBOKASSA_PASSWORD1=
+ENV ROBOKASSA_PASSWORD2=
 
+RUN if [ -z "$Login" ]; then echo "Укажите логин" && exit 1; fi
+RUN if [ -z "$Pass1" ]; then echo "Укажите пароль1" && exit 1; fi
+RUN if [ -z "$Pass2" ]; then echo "Укажите пароль2" && exit 1; fi
 EXPOSE 9777
 CMD ["node", "dist/index.js"]

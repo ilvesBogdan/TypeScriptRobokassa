@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-import { ErrMissingParam, ErrInvalidParam } from './errors';
+import { ErrMissingParam, ErrInvalidHash, ErrInvalidParam } from './errors';
 import { PaymentRequest } from './robokassa.struct';
 
 export default class Robokassa {
@@ -100,6 +100,11 @@ export default class Robokassa {
     * @returns Возвращает true, если платеж прошел успешно, и false в противном случае.
     */
     public checkPayment(req: PaymentRequest, userFirstPass?: boolean): boolean {
+        const fieldName = 'SignatureValue';
+        if (!(fieldName in req && typeof req[fieldName] === 'string'))
+            throw new ErrInvalidHash(fieldName in req ?
+                'Неверный формат хэша'
+                : `Отсутствует обязательный параметр ${fieldName}`);
         const keys = Object.keys(req).sort();
         const userParams: string[] = [];
 
@@ -114,12 +119,16 @@ export default class Robokassa {
 
         if (userParams.length > 0) {
             for (let i = 0; i < userParams.length; i++) {
-                crcOpts.push(userParams[i]);
+                if (i !== undefined)
+                    crcOpts.push(userParams[i]);
             }
         }
 
+        const reqSig = req.SignatureValue;
+        if (typeof reqSig !== 'string')
+            throw new ErrInvalidHash('Неверный формат хэша');
         const crc = this.hash(crcOpts.join(':'));
-        return crc === req.SignatureValue.toLowerCase();
+        return crc === reqSig.toLowerCase();
     }
 
     /**

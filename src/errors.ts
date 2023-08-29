@@ -12,6 +12,13 @@ class ErrInvalidParam extends Error {
     }
 }
 
+class ErrInvalidHash extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'Invalid hash';
+    }
+}
+
 class ErrRobocass extends Error {
     constructor(errCode: number, message?: string) {
         const superMessage = message !== undefined ? ` "${message}"` : '';
@@ -66,4 +73,4 @@ class ErrRobocass extends Error {
     }
 }
 
-export { ErrMissingParam, ErrInvalidParam, ErrRobocass };
+export { ErrMissingParam, ErrInvalidHash, ErrInvalidParam, ErrRobocass };

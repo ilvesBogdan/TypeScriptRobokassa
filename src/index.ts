@@ -28,7 +28,7 @@ app.post('/getlink', (req: Request, res: Response) => {
         return res.status(400).send('Invalid request: missing required fields');
     }
     const link = transactionMgr.merchantUrl({ invId, summ, description });
-    const payment: Payment = { _id: invId, count: summ, status: undefined, created: new Date() };
+    const payment: Payment = { id: invId, count: summ, status: -1, created: new Date() };
     console.log(`Запрос на получение ссылки на оплату на сумму ${summ}, для заказа ${invId}`);
     db.insert(payment, (err, _) => {
         if (err) {
@@ -42,19 +42,23 @@ app.post('/getlink', (req: Request, res: Response) => {
 
 app.post('/checkpayment', (req: Request, res: Response) => {
     // todo реализация
-    const id = req.body.id;
+    const id = req.body.invId;
     if (!id) {
         return res.status(400).send('Invalid request: missing required fields');
     }
-    db.find({ _id: id }, (err, docs) => {
+    db.find({ id: id }, (err, docs) => {
         if (err) {
             console.log(`Ошибка получения значение из db по id ${id}`);
             res.status(500).send({ error: `Error "${err}"` });
             return;
         }
         console.log(`Запрос на получение информации о платеже, для заказа ${id}`);
-        const paymentStatus = docs[0].status;
-        res.send({ "status": paymentStatus });
+        const payments = docs.map((i) => ({
+            invId: i.id,
+            status: i.status < 0 ? 'does not confirm' : Boolean(i.status),
+            created: i.created
+        }));
+        res.send({ "payments": payments });
     })
 })
 
